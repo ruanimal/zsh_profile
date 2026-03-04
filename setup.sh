@@ -6,6 +6,18 @@ echo "========================================="
 echo "  开始安装 Zsh 环境及相关配置"
 echo "========================================="
 
+BACKUP_FILES=()
+
+backup_if_exists() {
+    local target_file="$1"
+    if [ -f "$target_file" ]; then
+        local backup_file="${target_file}.bak.$(date +%Y%m%d%H%M%S)"
+        cp "$target_file" "$backup_file"
+        BACKUP_FILES+=("$backup_file")
+        echo ">> 已备份: $target_file -> $backup_file"
+    fi
+}
+
 # 检测操作系统
 OS="Unknown"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -69,10 +81,12 @@ fi
 # 5. 复制配置文件
 echo ">> 配置 .zshrc ..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+backup_if_exists "$HOME/.zshrc"
 cp "$SCRIPT_DIR/.zshrc" "$HOME/.zshrc"
 
 echo ">> 配置 .p10k.zsh ..."
 if [ -f "$SCRIPT_DIR/.p10k.zsh" ]; then
+    backup_if_exists "$HOME/.p10k.zsh"
     cp "$SCRIPT_DIR/.p10k.zsh" "$HOME/.p10k.zsh"
     echo ">> 已应用自带的 .p10k.zsh 主题配置"
 elif [ -f "$HOME/.p10k.zsh" ]; then
@@ -85,6 +99,16 @@ fi
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo ">> 正在切换默认 shell 为 zsh..."
     chsh -s $(which zsh)
+fi
+
+echo ""
+echo ">> 备份目录汇总输出"
+if [ ${#BACKUP_FILES[@]} -gt 0 ]; then
+    for backup_file in "${BACKUP_FILES[@]}"; do
+        echo "  - $backup_file"
+    done
+else
+    echo "  - 本次未生成备份文件"
 fi
 
 echo "========================================="

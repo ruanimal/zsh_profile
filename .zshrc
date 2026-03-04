@@ -14,6 +14,8 @@ export ZSH="$HOME/.oh-my-zsh"
 DISABLE_MAGIC_FUNCTIONS="true"
 ENABLE_CORRECTION="true"
 COMPLETION_WAITING_DOTS="true"
+DISABLE_AUTO_UPDATE=true
+DISABLE_UPDATE_PROMPT=true
 
 # 启用的插件 (结合通用和高效开发)
 plugins=(
