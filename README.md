@@ -21,6 +21,14 @@
 - 自动备份已有配置文件（带时间戳）
 - 自动切换默认 shell 到 `zsh`（若当前不是）
 
+## 相比 Oh My Zsh 默认配置的优势
+
+- **启动速度更快**：在保留常用能力的前提下使用更精简的插件组合，并结合 `powerlevel10k` 的 Instant Prompt 机制，减少打开新终端时的等待感。
+- **补全体验更好**：`zsh-autosuggestions` 基于历史命令提供实时建议，减少重复输入。
+- **可读性更高**：`zsh-syntax-highlighting` 提供命令语法高亮，降低输错命令的概率。
+- **历史检索更高效**：`zsh-history-substring-search` 支持按子串快速回溯历史命令。
+- **提示信息更丰富**：`powerlevel10k` 提供更高信息密度的提示符（如 Git 状态、执行耗时等）。
+
 ## 项目结构
 
 ```text
