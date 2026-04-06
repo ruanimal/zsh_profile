@@ -77,3 +77,11 @@ fi
 
 ### USER SPECIFIC PATHS
 [[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
+
+# no spell correct
+unsetopt correct_all
+
+# Completion: prefer case-sensitive matches
+zstyle ':completion:*' matcher-list \
+  'm:{a-zA-Z}={a-zA-Z}' \
+  'm:{a-z}={A-Z}'
