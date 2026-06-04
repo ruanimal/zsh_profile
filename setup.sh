@@ -95,7 +95,21 @@ else
     echo ">> 未找到 .p10k.zsh，重启终端时 p10k 会引导您进行配置"
 fi
 
-# 6. 切换默认 Shell
+# 6. 安装 zsh-history-cleaner 工具
+echo ">> 安装 zsh-history-cleaner 工具..."
+INSTALL_DIR="$HOME/.local/bin"
+mkdir -p "$INSTALL_DIR"
+cp "$SCRIPT_DIR/zsh_history_cleaner.py" "$INSTALL_DIR/zsh-history-cleaner"
+chmod +x "$INSTALL_DIR/zsh-history-cleaner"
+echo ">> 已安装 zsh-history-cleaner 到 $INSTALL_DIR/zsh-history-cleaner"
+
+# 确保 ~/.local/bin 在 PATH 中
+if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+    echo ">> 已将 ~/.local/bin 添加到 PATH"
+fi
+
+# 7. 切换默认 Shell
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo ">> 正在切换默认 shell 为 zsh..."
     chsh -s $(which zsh)

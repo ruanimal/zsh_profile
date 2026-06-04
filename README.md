@@ -19,6 +19,7 @@
 - 自动安装主题：`powerlevel10k`
 - 自动应用仓库内的配置：`.zshrc`、`.p10k.zsh`
 - 自动备份已有配置文件（带时间戳）
+- 自动安装 `zsh-history-cleaner` 工具到 `~/.local/bin/`
 - 自动切换默认 shell 到 `zsh`（若当前不是）
 
 ## 优势
@@ -34,9 +35,10 @@
 
 ```text
 .
-├── setup.sh      # 一键安装脚本
-├── .zshrc        # Zsh 主配置
-└── .p10k.zsh     # Powerlevel10k 主题配置
+├── setup.sh                # 一键安装脚本
+├── .zshrc                  # Zsh 主配置
+├── .p10k.zsh               # Powerlevel10k 主题配置
+└── zsh_history_cleaner.py  # Zsh 历史清理工具
 ```
 
 ## 使用方式
@@ -74,7 +76,8 @@ exec zsh
 3. 安装 `Oh My Zsh`（如果未安装）
 4. 安装插件和 `powerlevel10k` 主题
 5. 备份并覆盖 `~/.zshrc`、`~/.p10k.zsh`
-6. 将默认 shell 切换到 `zsh`
+6. 安装 `zsh-history-cleaner` 到 `~/.local/bin/`
+7. 将默认 shell 切换到 `zsh`
 
 ## 备份与恢复
 
@@ -119,3 +122,46 @@ exec zsh
 
 - 已支持：`macOS`、`Linux`（`pacman` / `apt` / `dnf`）
 - 其他发行版可参考脚本逻辑自行调整依赖安装命令。
+
+## zsh-history-cleaner 工具
+
+安装完成后，可使用 `zsh-history-cleaner` 命令清理和优化 zsh 历史文件。
+
+### 功能
+
+- 清理超过指定保留时间的多行命令历史
+- 清理超过 3 倍保留时间的所有历史记录
+- 对所有时间的历史记录进行去重（保留最近一条）
+- 自动备份原始文件和维护完整历史备份
+
+### 使用方法
+
+```bash
+# 使用默认配置（保留 30 天）
+zsh-history-cleaner
+
+# 预览模式（不实际修改文件）
+zsh-history-cleaner --dry-run
+
+# 自定义保留天数
+zsh-history-cleaner --days 60
+
+# 查看所有选项
+zsh-history-cleaner --help
+```
+
+### 选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--days N` | 保留时间（天） | 30 |
+| `--dry-run` | 预览模式，不实际修改文件 | - |
+| `--backup-dir` | 备份目录 | `~/.zsh_history_backups/` |
+| `--history-file` | 历史文件路径 | `~/.zsh_history` |
+
+### 备份说明
+
+工具会自动：
+- 在清理前备份原始文件到 `~/.zsh_history_backups/`
+- 维护完整历史备份文件 `~/.zsh_history_backups/zsh_history_full`
+- 自动清理超过 30 个的旧备份文件
