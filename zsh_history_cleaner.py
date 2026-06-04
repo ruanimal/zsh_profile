@@ -86,15 +86,15 @@ class ZshHistoryCleaner:
         判断是否应该保留该历史记录
 
         清理规则：
-        1. 无时间戳的记录保留
+        1. 无时间戳的记录直接清理
         2. 多行命令：超过保留时间则清理
         3. 单行命令：超过 3 倍保留时间则清理
         """
         timestamp, command, is_multiline = entry
 
-        # 无时间戳的记录保留
+        # 无时间戳的记录直接清理
         if timestamp is None:
-            return True
+            return False
 
         # 多行命令：超过保留时间则清理
         if is_multiline:
@@ -124,7 +124,11 @@ class ZshHistoryCleaner:
                 key = command.strip()
 
             # 如果命令未见过，或者当前记录更新
-            if key not in seen_commands or (timestamp and (key not in seen_commands or timestamp > seen_commands[key][0])):
+            if key not in seen_commands:
+                seen_commands[key] = entry
+            elif timestamp and seen_commands[key][0] is None:
+                seen_commands[key] = entry
+            elif timestamp and seen_commands[key][0] and timestamp > seen_commands[key][0]:
                 seen_commands[key] = entry
 
         # 按时间排序（无时间戳的记录放在最后）
