@@ -42,9 +42,9 @@ class ZshHistoryCleaner:
 
     def parse_history_line(self, line: str) -> Optional[Tuple[Optional[datetime], str, bool]]:
         """
-        解析 zsh 历史行
+        解析单行 zsh 历史行（不做多行判断）
 
-        返回：(时间戳, 命令内容, 是否为多行命令)
+        返回：(时间戳, 命令内容, 是否以反斜杠结尾)
         """
         line = line.rstrip('\n')
 
@@ -56,30 +56,87 @@ class ZshHistoryCleaner:
             timestamp = int(match.group(1))
             command = match.group(3)
             dt = datetime.fromtimestamp(timestamp)
-            is_multiline = command.rstrip().endswith('\\')
-            return (dt, command, is_multiline)
+            ends_with_backslash = command.rstrip().endswith('\\')
+            return (dt, command, ends_with_backslash)
 
-        # 普通历史行（无时间戳）
+        # 普通历史行（无时间戳，续行内容）
         if line and not line.startswith(':'):
-            is_multiline = line.rstrip().endswith('\\')
-            return (None, line, is_multiline)
+            ends_with_backslash = line.rstrip().endswith('\\')
+            return (None, line, ends_with_backslash)
 
         return None
 
+    def _merge_multiline_entries(self, parsed: List[Optional[Tuple[Optional[datetime], str, bool]]]) -> List[Tuple[Optional[datetime], str, bool]]:
+        """
+        将解析后的单行条目合并为完整的命令（处理多行命令）
+
+        多行命令判断逻辑：
+        - 真正的多行命令：行以 \\ 结尾，且下一行不以 `: timestamp:` 开头（续行）
+        - 误带反斜杠的单行命令：行以 \\ 结尾，但下一行以 `: timestamp:` 开头（独立命令）
+          -> 去除末尾反斜杠
+        """
+        history_entries = []
+        i = 0
+        while i < len(parsed):
+            entry = parsed[i]
+            if entry is None:
+                i += 1
+                continue
+
+            timestamp, command, ends_with_backslash = entry
+
+            if not ends_with_backslash:
+                # 不以反斜杠结尾，直接作为单行命令
+                history_entries.append((timestamp, command, False))
+                i += 1
+                continue
+
+            # 以反斜杠结尾，检查下一行是否为续行
+            is_true_multiline = False
+            if i + 1 < len(parsed):
+                next_entry = parsed[i + 1]
+                if next_entry is not None:
+                    next_timestamp, _, _ = next_entry
+                    # 下一行无时间戳 -> 是续行，真正的多行命令
+                    if next_timestamp is None:
+                        is_true_multiline = True
+
+            if is_true_multiline:
+                # 真正的多行命令：收集所有续行
+                full_command = command
+                j = i + 1
+                while j < len(parsed) and parsed[j] is not None:
+                    _, cont_line, cont_ends = parsed[j]
+                    full_command += '\n' + cont_line
+                    j += 1
+                    if not cont_ends:
+                        break
+                history_entries.append((timestamp, full_command, True))
+                i = j
+            else:
+                # 误带反斜杠的单行命令：去除末尾反斜杠
+                clean_command = command.rstrip('\\').rstrip()
+                history_entries.append((timestamp, clean_command, False))
+                i += 1
+
+        return history_entries
+
+    def _read_and_parse(self, file_path: Path) -> List[Tuple[Optional[datetime], str, bool]]:
+        """从指定文件读取并解析历史记录（底层方法）"""
+        raw_lines = []
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                raw_lines.append(line.rstrip('\n'))
+
+        parsed = [self.parse_history_line(line) for line in raw_lines]
+        return self._merge_multiline_entries(parsed)
+
     def read_history_file(self) -> List[Tuple[Optional[datetime], str, bool]]:
-        """读取历史文件，返回解析后的历史记录列表"""
+        """读取主历史文件，返回解析后的历史记录列表"""
         if not self.history_file.exists():
             print(f"错误：历史文件不存在: {self.history_file}")
             sys.exit(1)
-
-        history_entries = []
-        with open(self.history_file, 'r', encoding='utf-8', errors='ignore') as f:
-            for line in f:
-                entry = self.parse_history_line(line)
-                if entry:
-                    history_entries.append(entry)
-
-        return history_entries
+        return self._read_and_parse(self.history_file)
 
     def should_keep_entry(self, entry: Tuple[Optional[datetime], str, bool]) -> bool:
         """
@@ -210,17 +267,12 @@ class ZshHistoryCleaner:
             print(f"[预览] 将更新完整历史备份: {full_backup_file}")
 
     def read_history_file_from(self, file_path: Path) -> List[Tuple[Optional[datetime], str, bool]]:
-        """从指定文件读取历史记录"""
-        entries = []
+        """从指定文件读取历史记录（容错版本，出错返回空列表）"""
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                for line in f:
-                    entry = self.parse_history_line(line)
-                    if entry:
-                        entries.append(entry)
+            return self._read_and_parse(file_path)
         except Exception as e:
             print(f"警告：读取文件失败 {file_path}: {e}")
-        return entries
+            return []
 
     def write_cleaned_history(self, entries: List[Tuple[Optional[datetime], str, bool]]):
         """写入清理后的历史文件"""
